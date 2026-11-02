@@ -22,7 +22,6 @@ jobs:
     env:
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
-      BILICLEANER_DATA: ${{ runner.temp }}\bilicleaner-ci-data
 
     steps:
       - name: Checkout
@@ -42,4 +41,6 @@ jobs:
 
       - name: Run tests
         shell: pwsh
+        env:
+          BILICLEANER_DATA: ${{ runner.temp }}\bilicleaner-ci-data
         run: python -m pytest -q
