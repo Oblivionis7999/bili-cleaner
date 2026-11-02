@@ -2,7 +2,7 @@
 
 写这篇是为了让后来改代码的人（包括三个月后的我）不用先读一遍全部源码，就能知道东西是怎么拼起来的、哪些地方不能乱动。
 
-模块边界以 [`docs/API-CONTRACT.md`](API-CONTRACT.md) 为准，策略细节来自 [`docs/adr/`](adr/)。本文描述 v0.1 的模块切分和已经落地的行为；模拟数据全链路已验证，真实账号的接口兼容性靠 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 人工冒烟。文档和代码打架时，先改契约，再改代码，最后回来改这篇。
+模块边界以 [`docs/API-CONTRACT.md`](API-CONTRACT.md) 为准，策略细节来自 [`docs/adr/`](adr/)。本文描述 v0.1 的模块切分和已经落地的行为；模拟数据全链路已验证，真实账号也做过一次小规模冒烟（只读 7/7 + 取关/删动态/清稍后再看）。文档和代码打架时，先改契约，再改代码，最后回来改这篇。
 
 ## 1. 一句话
 
@@ -105,7 +105,7 @@
 | `web/*` | 四个 Tab、登录页、设置页、日志页、任务浮层 | 业务规则 | 已实现 |
 | `mock/*` | 假客户端同接口替身、大量中文假数据、可注入假风控 | 被生产代码依赖 | 已实现 |
 
-状态里的"已实现"指模拟数据下跑通、有测试覆盖。`bili/*` 对真实 B 站接口的兼容性没有被作者在真实账号上验证过，靠 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 里的只读冒烟脚本人工确认。
+状态里的"已实现"指模拟数据下跑通、有测试覆盖。`bili/*` 在作者自己的真实账号上做过一次只读 + 小规模写冒烟（v0.1.0 发布前），但 B 站接口可能变，仍然建议用自己的账号按 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 先跑一遍。
 
 ## 5. 一次取关任务的完整路径
 
@@ -253,7 +253,7 @@ logs/operations.jsonl           应用日志（info / warn / error），排障�
 3. 执行器调 `succeeded_keys(task)` 读 `task_ops/<task_id>.jsonl` 里 `ok=true` 的 key 集合，跳过这些对象。
 4. 从第一个没处理过的对象继续，每处理一个就 `append_op()` 追加一行、定期落盘进度。
 
-这套机制已经落在 `TaskManager` 和执行器里（`_recover_locked` / `succeeded_keys` / `append_op`），`--mock` 模式下能跑通；真实账号还没验证过，边界以 `services/task_engine.py` 和 `services/executors.py` 的实现为准。
+这套机制已经落在 `TaskManager` 和执行器里（`_recover_locked` / `succeeded_keys` / `append_op`），`--mock` 模式下能跑通；真实账号上跑过取关 6 个、删动态 1 条、清稍后再看 4 条的成功路径，但"任务跑到一半强制重启"的恢复场景没在真实账号上故意验证过，边界以 `services/task_engine.py` 和 `services/executors.py` 的实现为准。
 
 两个诚实的限制：
 
@@ -335,13 +335,14 @@ BiliCleaner/
 
 | 项目 | 结果 |
 |---|---|
-| 单元 / 集成测试 | 184 passed：bili 76 + services 38 + api 14 + mock/store 56 |
+| 单元 / 集成测试 | 185 passed：bili 76 + services 38 + api 15 + mock/store 56 |
 | mock 端到端 | `/api` 全部路由返回 200；六种任务类型全部跑到 `done`；备份 CSV / JSONL / meta 三件套都正常生成 |
 | 打包 | PyInstaller 单文件 `dist\BiliCleaner.exe`，23.8 MB；exe 的 mock 模式能起服务，静态资源正常加载 |
 | 前端 | 桌面和移动端截图见 `docs/screenshots/`；纯静态、无构建、无 CDN |
+| 真实账号冒烟 | 2026-11-02：只读 7/7 通过；真实写任务取关 6、删动态 1、清稍后再看 4，全部 done，备份与 task_ops 日志正常 |
 
 **没有**验证过的：
 
-- 真实 B 站接口。开发阶段刻意没连真实账号，避免把风控风险带进测试和 CI；真实兼容性由 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 的只读冒烟脚本人工确认。
-- 真实账号上的批量删除、风控冷却、断点续跑恢复。这些只能在自己账号上小规模试，别一上来就清几千条。
+- 大规模真实操作：真实账号上只做过小规模冒烟（几十个对象级别），没拿几千条压过风控阈值；冷却后的自动恢复、长时间断点续跑也没在真号上故意验证过。
+- 接口漂移：B 站改接口时 `bili/*` 可能失效，需要人工按 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 复测。
 - macOS / Linux（存储层会退化成 base64，只适合开发调试）。
