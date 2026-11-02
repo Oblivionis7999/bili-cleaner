@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="BiliCleaner — 在本地管理 B 站动态、关注、收藏夹与稍后再看的工具。">
+  <title>BiliCleaner · 本地 B 站清理工具</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzAwMCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMi42IiBmaWxsPSIjZmZmIi8+PC9zdmc+">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ============================================================ global nav -->
+  <header class="global-nav">
+    <div class="global-nav__inner">
+      <a class="global-nav__brand" href="#/dynamics" aria-label="BiliCleaner 首页">
+        <span class="global-nav__mark" aria-hidden="true"></span>
+        <span>BiliCleaner</span>
+      </a>
+      <nav class="global-nav__links" aria-label="账户与运行状态">
+        <span class="mode-badge" id="nav-mode" hidden></span>
+        <span class="global-nav__user" id="nav-user" hidden>
+          <img class="global-nav__avatar" id="nav-avatar" alt="" width="24" height="24">
+          <span class="global-nav__name" id="nav-username"></span>
+        </span>
+        <button class="global-nav__link" id="nav-logout" type="button" hidden>退出登录</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================== login page -->
+  <main id="view-login" class="view view--login" hidden>
+    <section class="login__hero">
+      <div class="login__inner">
+        <p class="eyebrow">本地运行 · 数据不出本机</p>
+        <h1>扫码登录 B 站</h1>
+        <p class="login__lead">用 B 站手机客户端扫码。登录状态只保存在这台电脑上，并使用 Windows DPAPI 加密。</p>
+
+        <div class="qr-card" id="qr-card">
+          <img id="qr-image" alt="B 站登录二维码" width="220" height="220">
+          <div class="qr-card__mask" id="qr-mask" hidden>
+            <p class="qr-card__mask-title" id="qr-mask-title">二维码已过期</p>
+            <p class="qr-card__mask-desc" id="qr-mask-desc">点击下方按钮重新获取</p>
+          </div>
+        </div>
+
+        <p class="qr-status" id="qr-status" role="status" aria-live="polite">
+          <span class="qr-status__dot" aria-hidden="true"></span>
+          <span id="qr-status-text">正在生成二维码…</span>
+        </p>
+
+        <div class="login__actions">
+          <button class="btn btn--secondary btn--small" id="qr-refresh" type="button">刷新二维码</button>
+          <button class="btn btn--ghost btn--small" id="qr-demo" type="button" hidden>演示：模拟扫码成功</button>
+        </div>
+
+        <p class="login__hint">打开 B 站手机客户端 → 我的 → 扫一扫</p>
+      </div>
+    </section>
+
+    <section class="login__notes" aria-label="隐私与安全说明">
+      <div class="login__notes-grid">
+        <div class="note">
+          <p class="note__title">只在本机</p>
+          <p class="note__text">所有请求由本机的 Python 服务发起，不经过第三方服务器，也不会上传任何数据。</p>
+        </div>
+        <div class="note">
+          <p class="note__title">加密保存</p>
+          <p class="note__text">登录 Cookie 使用 Windows DPAPI 加密后存放，只有当前 Windows 用户能解密。</p>
+        </div>
+        <div class="note">
+          <p class="note__title">保守限速</p>
+          <p class="note__text">请求之间有随机间隔；触发风控会自动冷却，冷却结束前不会继续操作。</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <div class="page-footer__inner">
+        <span>BiliCleaner</span>
+        <span>本地工具 · 请遵守 B 站用户协议</span>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ============================================================= app shell -->
+  <div id="app" class="app" hidden>
+    <nav class="sub-nav" aria-label="内容导航">
+      <div class="sub-nav__inner">
+        <div class="sub-nav__tabs" role="tablist" aria-label="清理对象">
+          <button class="tab" type="button" role="tab" data-route="dynamics" aria-selected="false">动态</button>
+          <button class="tab" type="button" role="tab" data-route="follows" aria-selected="false">关注</button>
+          <button class="tab" type="button" role="tab" data-route="favorites" aria-selected="false">收藏夹</button>
+          <button class="tab" type="button" role="tab" data-route="toview" aria-selected="false">稍后再看</button>
+        </div>
+        <div class="sub-nav__actions">
+          <button class="sub-nav__link" type="button" data-route="logs" aria-current="false">日志</button>
+          <button class="sub-nav__link" type="button" data-route="settings" aria-current="false">设置</button>
+        </div>
+      </div>
+    </nav>
+    <main id="view-root" class="view" role="main"></main>
+  </div>
+
+  <!-- ============================================================ fixed chrome -->
+  <div id="action-bar" class="action-bar" aria-hidden="true"></div>
+  <aside id="task-dock" class="task-dock is-hidden" aria-live="polite" aria-label="任务进度"></aside>
+  <div id="modal-root" class="modal" role="presentation" aria-hidden="true"></div>
+  <div id="toast-root" class="toasts" role="status" aria-live="polite"></div>
+
+  <!-- runtime error log kept for self-check (hidden, never styled) -->
+  <pre id="js-error-log" hidden></pre>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+# ---- python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.spec
+.venv/
+venv/
+
+# ---- runtime data (never commit anyone's account data) ----
+data/
+backups/
+*.log
+*.jsonl
+
+# ---- editor / os ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+
+# ---- local test artifacts ----
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- local dev artifacts ----
+.devdata*/
+.shotdata/
+screenshot.png
+dom-check.html
+docs/screenshots/_*.png
+
+# ---- screenshot scratch dirs ----
+shots/
+shots2/
+shots3/
+shots-real/
+dom-*.html

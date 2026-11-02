@@ -1,0 +1,135 @@
+name: Release
+
+# 只手动触发的工作流（避免 push tag 时自动抢发 release）。
+# 流程：Actions 页面 / `gh workflow run release.yml -f tag=v0.1.0`
+#   -> 跑测试 -> 打包 exe -> 生成 draft release（不自动发布）
+#   -> 人工下载 CI 产物验证 -> 在 GitHub 上手动 Publish。
+# 首次 v0.1.0 由维护者本地打 exe 验证后手动上传，这个 workflow 留给后续发版。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要发布的 tag（例如 v0.1.0），必填；产物会挂在同名 draft release 上"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & Release (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        shell: pwsh
+        run: python -m pytest -q
+
+      # CI 里依赖已经装在 runner 的 Python 上：用 -SkipVenv 避免再建 .venv
+      - name: Build single-file exe
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build_exe.ps1 -SkipVenv -SkipInstall
+
+      - name: Compute SHA256
+        id: hash
+        shell: pwsh
+        run: |
+          $exe = "dist/BiliCleaner.exe"
+          if (-not (Test-Path $exe)) { throw "找不到产物：$exe" }
+          $item = Get-Item $exe
+          $hash = (Get-FileHash -Path $exe -Algorithm SHA256).Hash.ToLower()
+          $sizeBytes = $item.Length
+          $sizeMb = "{0:N2}" -f ($sizeBytes / 1MB)
+          Write-Host "SHA256: $hash"
+          Write-Host "大小: $sizeMb MB ($sizeBytes bytes)"
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "size_bytes=$sizeBytes" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "size_mb=$sizeMb" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Generate release notes
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.tag }}"
+          $repo = "${{ github.repository }}"
+          $sha = "${{ steps.hash.outputs.sha256 }}"
+          $sizeMb = "${{ steps.hash.outputs.size_mb }}"
+          $lines = @(
+            ('BiliCleaner {0} —— 一个本地运行的 B 站账号清理小工具。' -f $version),
+            '',
+            '扫码登录后，在浏览器里清理自己的关注、动态、收藏夹和稍后再看。所有数据只在本机处理，登录态用 Windows DPAPI 加密保存在本地。',
+            '',
+            '## 它能做什么（四件套）',
+            '',
+            '- 取关：按 21 类分类、分组、互关筛选后批量取关（默认保护互关）',
+            '- 删动态：按类型 / 关键词筛选后删除自己的动态',
+            '- 清收藏夹：批量取消收藏，或一键清理失效视频',
+            '- 清稍后再看：勾选确认后一键清空',
+            '',
+            '所有删除类任务都会先在本地备份（CSV + JSONL）再执行，任务支持暂停 / 继续 / 停止与断点续跑。',
+            '',
+            '## 怎么用',
+            '',
+            '1. 下载下面的 BiliCleaner.exe（Windows 10/11，无需安装 Python）',
+            '2. 双击运行，会自动打开浏览器；没打开就访问 http://127.0.0.1:8770/',
+            '3. 用 B 站 App 扫码登录，然后按需清理',
+            '4. 只想看看界面：BiliCleaner.exe --mock 会用内置假数据启动，不连接 B 站',
+            '',
+            '## 风险提示（请务必读完）',
+            '',
+            '- 默认限速比较保守；如果触发 B 站风控，程序会冷却暂停，不要手动加速或反复重试。',
+            '- 取关、删除动态、取消收藏、清空稍后再看不可恢复；执行前请确认备份文件已经生成。',
+            '- 请遵守 B 站用户协议与相关法规，本工具仅用于清理你自己的账号，风险自负。',
+            '- exe 没有代码签名，Windows SmartScreen 可能提示"未知发布者"，选择"仍要运行"即可；介意的话可以从源码运行。',
+            '',
+            '## 校验值',
+            '',
+            ('- 文件：BiliCleaner.exe（{0} MB）' -f $sizeMb),
+            ('- SHA256：{0}' -f $sha),
+            '',
+            'Windows 上校验：Get-FileHash .\BiliCleaner.exe -Algorithm SHA256',
+            '',
+            '## 反馈',
+            '',
+            ('遇到问题或有建议请开 issue：https://github.com/{0}/issues' -f $repo),
+            '',
+            'License: MIT'
+          )
+          $body = $lines -join "`n"
+          Set-Content -Path release-body.md -Value $body -Encoding utf8
+          Write-Host "release body 已生成（$($body.Length) 字符）"
+
+      - name: Create GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BiliCleaner ${{ inputs.tag }}
+          tag_name: ${{ inputs.tag }}
+          body_path: release-body.md
+          files: dist/BiliCleaner.exe
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

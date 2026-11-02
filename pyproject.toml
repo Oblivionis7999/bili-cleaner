@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bilicleaner"
+version = "0.1.0"
+description = "A tiny local web app that cleans up your own Bilibili account: unfollows, dynamics, favorites and watch-later."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "BiliCleaner contributors" }]
+keywords = ["bilibili", "cleanup", "unfollow", "favorites", "privacy"]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "requests>=2.31",
+  "pillow>=10.0",
+  "qrcode>=7.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pyinstaller>=6.0"]
+
+[project.scripts]
+bilicleaner = "bilicleaner.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["bilicleaner*"]
+
+[tool.setuptools.package-data]
+bilicleaner = ["web/*", "web/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
