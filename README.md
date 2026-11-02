@@ -2,7 +2,7 @@
 
 一个跑在你自己电脑上的 B 站账号清理工具：批量取关、删动态、清空收藏夹、清空稍后再看。请求从本机直接发到 B 站，中间没有我的服务器，也没有别人的服务器。
 
-> 版本 0.1.0。模拟数据下全链路已经跑通：185 条测试全绿，六种任务端到端完成，备份三件套正常生成，`dist\BiliCleaner.exe`（23.8 MB）也能直接跑起来。真实账号也冒烟过一次：只读接口 7/7 通过，小规模写测试（取关 6 个、删 1 条动态、清 4 条稍后再看）全部成功、备份正常。不过你的账号、网络跟我的不一样，第一次用真号还是建议先按 [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md) 跑一遍只读冒烟，再动写操作。
+> 版本 0.1.1。模拟数据下全链路已经跑通：185 条测试全绿，六种任务端到端完成，备份三件套正常生成，`dist\BiliCleaner.exe`（23.8 MB）也能直接跑起来。真实账号也冒烟过一次：只读接口 7/7 通过，小规模写测试（取关 6 个、删 1 条动态、清 4 条稍后再看）全部成功、备份正常。不过你的账号、网络跟我的不一样，第一次用真号还是建议先按 [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md) 跑一遍只读冒烟，再动写操作。
 >
 > 下载：[Releases](https://github.com/Oblivionis7999/bili-cleaner/releases)（Windows exe，约 24 MB）；不想用现成的也可以自己构建，见[怎么跑](#怎么跑)。
 
@@ -101,17 +101,17 @@
 
 ## 下载
 
-从 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下 `BiliCleaner.exe`（v0.1.0，Windows 10/11 x64，约 24 MB）。单文件，不用装 Python，HTML/CSS/JS 都打在里面了。
+从 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下 `BiliCleaner.exe`（v0.1.1，Windows 10/11 x64，约 24 MB）。单文件，不用装 Python，HTML/CSS/JS 都打在里面了。
 
 1. 下载 `BiliCleaner.exe`
 2. 双击运行
 3. 浏览器自动打开 `http://127.0.0.1:8770/`
 
-下载后建议核对一下 SHA256（v0.1.0 的校验值，24,953,852 字节）：
+下载后建议核对一下 SHA256（v0.1.1 的校验值，24,950,864 字节）：
 
 ```powershell
 Get-FileHash .\BiliCleaner.exe -Algorithm SHA256
-# 226B3E9AEC70829BBFA88B1016BE6947A1919DAE08E46B807FDDB7BD4CE9DDC7
+# 73998953271024FEC844B9A9773E100DDE3C10937DC3DB8803B79EBF8A25A5A6
 ```
 
 几个提醒：

@@ -1426,7 +1426,7 @@
         }
         <div class="dialog__actions">
           <button class="btn btn--pearl btn--small" type="button" data-dialog-action="cancel">取消</button>
-          <button class="btn ${opts.danger ? 'btn--dark' : 'btn--primary'} btn--small" type="button"
+          <button class="btn ${opts.danger ? 'btn--danger' : 'btn--primary'} btn--small" type="button"
                   data-dialog-action="confirm" disabled>${esc(opts.confirmLabel || '确认')}</button>
         </div>
       </div>`;
@@ -1522,7 +1522,7 @@
             <div class="action-bar__actions">
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-follows">清除选择</button>
               <button class="btn btn--secondary btn--small" type="button" data-action="classify-llm">LLM 分类</button>
-              <button class="btn btn--dark btn--small" type="button" data-action="unfollow-selected">取关选中</button>
+              <button class="btn btn--danger btn--small" type="button" data-action="unfollow-selected">取关选中</button>
             </div>
           </div>`;
       } else if (state.route === 'dynamics' && state.dynamics.selected.size > 0) {
@@ -1531,7 +1531,7 @@
             <p class="action-bar__count">已选 <strong>${fmtInt(state.dynamics.selected.size)}</strong> 条动态</p>
             <div class="action-bar__actions">
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-dynamics">清除选择</button>
-              <button class="btn btn--dark btn--small" type="button" data-action="delete-dynamics">删除选中</button>
+              <button class="btn btn--danger btn--small" type="button" data-action="delete-dynamics">删除选中</button>
             </div>
           </div>`;
       } else if (state.route === 'favorites' && state.favorites.selected.size > 0) {
@@ -1540,7 +1540,7 @@
             <p class="action-bar__count">已选 <strong>${fmtInt(state.favorites.selected.size)}</strong> 个内容</p>
             <div class="action-bar__actions">
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
-              <button class="btn btn--dark btn--small" type="button" data-action="fav-unfavorite-selected">取消收藏选中</button>
+              <button class="btn btn--danger btn--small" type="button" data-action="fav-unfavorite-selected">取消收藏选中</button>
             </div>
           </div>`;
       }
@@ -1753,7 +1753,6 @@
             <div class="hero__copy">
               <p class="eyebrow">${esc(opts.eyebrow)}</p>
               <h1>${esc(opts.title)}</h1>
-              ${opts.lead ? `<p class="hero__lead">${opts.lead}</p>` : ''}
             </div>
             ${opts.stats ? `<div class="hero__stats">${opts.stats}</div>` : ''}
           </div>
@@ -1801,29 +1800,6 @@
       </div>`;
     }
     return html;
-  }
-
-  function dangerZoneTpl(opts) {
-    return `<section class="danger-zone">
-      <div class="page-inner">
-        <p class="danger-zone__eyebrow">${esc(opts.eyebrow || '危险操作')}</p>
-        <h2>${esc(opts.title)}</h2>
-        <p class="danger-zone__lead">${opts.lead}</p>
-        <div class="danger-zone__rows">
-          ${opts.rows
-            .map(
-              (row) => `<div class="danger-row">
-                <div class="danger-row__copy">
-                  <p class="danger-row__title">${row.titleHtml || esc(row.title)}</p>
-                  <p class="danger-row__desc">${row.desc}</p>
-                </div>
-                <div class="danger-row__actions">${row.actions}</div>
-              </div>`
-            )
-            .join('')}
-        </div>
-      </div>
-    </section>`;
   }
 
   /* ============================================================ 7. router */
@@ -1938,42 +1914,36 @@
     dynamics: {
       eyebrow: '清理 · 动态',
       title: '动态',
-      lead: '按类型、关键词和日期范围筛选动态，再批量删除。',
       emptyTitle: '登录后才能清理动态',
       emptyDesc: '扫码登录后，这里会显示你的动态列表。登录信息只保存在本机。',
     },
     follows: {
       eyebrow: '管理 · 关注',
       title: '关注',
-      lead: '按分类整理关注列表，批量取关之前先把名单看清楚。',
       emptyTitle: '登录后才能查看关注',
       emptyDesc: '扫码登录后，这里会显示你关注的 UP 主，并按分类统计。',
     },
     favorites: {
       eyebrow: '整理 · 收藏夹',
       title: '收藏夹',
-      lead: '先选收藏夹，再处理不想再留着的内容。',
       emptyTitle: '登录后才能整理收藏夹',
       emptyDesc: '扫码登录后，这里会列出你的收藏夹和其中的内容。',
     },
     toview: {
       eyebrow: '清理 · 稍后再看',
       title: '稍后再看',
-      lead: '这里堆着的视频大概不会再看第二眼。',
       emptyTitle: '登录后才能清理稍后再看',
       emptyDesc: '扫码登录后，这里会显示你加入“稍后再看”的视频。',
     },
     settings: {
       eyebrow: '本地配置',
       title: '设置',
-      lead: '请求节奏、确认词、LLM 分类与备份设置。',
       emptyTitle: '登录后才能访问设置',
       emptyDesc: '设置保存在本机，登录后可以调整请求节奏与分类选项。',
     },
     logs: {
       eyebrow: '运行记录',
       title: '日志',
-      lead: '所有操作和任务状态都记录在本机。',
       emptyTitle: '登录后才能查看日志',
       emptyDesc: '登录后这里会显示本机的操作日志，方便排查问题。',
     },
@@ -1987,7 +1957,6 @@
       heroTpl({
         eyebrow: meta.eyebrow,
         title: meta.title,
-        lead: meta.lead,
         parchment: route === 'follows' || route === 'favorites' || route === 'settings',
       }) +
       `<section class="section"><div class="page-inner">${emptyTpl({
@@ -2030,13 +1999,10 @@
       heroTpl({
         eyebrow: '管理 · 关注',
         title: '关注',
-        lead: '按分类整理关注列表，批量取关之前先把名单看清楚。互关用户默认受保护。',
         parchment: true,
         stats:
           statTpl(stats ? fmtInt(stats.total) : '—', '关注总数', 'follows-stat-total') +
           statTpl(stats ? fmtInt(stats.mutual) : '—', '互关', 'follows-stat-mutual'),
-        extra: `<div class="stat-strip" id="stat-strip" role="group" aria-label="分类统计">${statStripTpl()}</div>
-                <p class="stat-strip__hint" id="stat-strip-hint">${esc(statHintText())}</p>`,
       }) +
       `<div class="toolbar" role="search">
         <div class="page-inner toolbar__inner">
@@ -2047,12 +2013,7 @@
           </div>
           <div class="select-wrap">
             <select class="select" id="follows-category" aria-label="按分类筛选">
-              <option value="">全部分类</option>
-              ${CATEGORIES.map(
-                (name) =>
-                  `<option value="${escAttr(name)}"${s.category === name ? ' selected' : ''}>${esc(name)}</option>`
-              ).join('')}
-              <option value="__none__"${s.category === '__none__' ? ' selected' : ''}>未分类</option>
+              ${categoryOptionsTpl()}
             </select>
           </div>
           <div class="select-wrap">
@@ -2072,8 +2033,9 @@
           <label class="switch"><input type="checkbox" id="follows-mutual"${
             s.mutual ? ' checked' : ''
           }><span class="switch__track"></span>只看互关</label>
-          <span class="toolbar__spacer"></span>
-          <button class="btn btn--secondary btn--small" type="button" data-action="classify-rule">规则分类</button>
+          <div class="toolbar__actions">
+            <button class="btn btn--secondary btn--small" type="button" data-action="classify-rule">规则分类</button>
+          </div>
         </div>
       </div>` +
       `<section class="section">
@@ -2090,28 +2052,6 @@
           <div class="list-footer" id="follows-footer"></div>
         </div>
       </section>` +
-      dangerZoneTpl({
-        eyebrow: '危险操作',
-        title: '取关之后，关注顺序不可恢复',
-        lead:
-          'B 站不提供恢复原关注顺序的接口。任务开始前会先按你的设置过滤（互关保护）并导出 CSV + JSONL 备份，但被取关的人不会回到原来的位置。',
-        rows: [
-          {
-            titleHtml: `取关选中的 <span id="follows-danger-count">${fmtInt(s.selected.size)}</span> 人`,
-            desc: state.settings.protect_mutual
-              ? '互关保护已开启：互关用户会被自动跳过，不会被取关。'
-              : '互关保护已关闭：互关用户也会被取关，请谨慎操作。',
-            actions: `<button class="btn btn--on-dark btn--small" type="button" data-action="unfollow-selected"${
-              s.selected.size ? '' : ' disabled'
-            }>取关选中</button>`,
-          },
-          {
-            title: '再想一次',
-            desc: '取关是单向操作。建议先按分类或分组筛一遍，确认名单里没有误选的人。',
-            actions: `<button class="btn btn--on-dark btn--small" type="button" data-action="classify-rule">先把分类整理好</button>`,
-          },
-        ],
-      }) +
       pageFooterTpl();
 
     if (!s.loaded) {
@@ -2126,52 +2066,36 @@
     renderActionBar();
   }
 
-  function statHintText() {
-    const stats = state.followStats;
-    if (!stats) return '正在统计分类…';
-    return `共 ${fmtInt(stats.total)} 人 · 互关 ${fmtInt(stats.mutual)} 人 · 未分类 ${fmtInt(
-      stats.uncategorized
-    )} 人 · 点击分类快速筛选`;
-  }
-
-  function statStripTpl() {
+  /* category dropdown carries the counts; no chip strip / stats line on the page */
+  function categoryOptionsTpl() {
     const stats = state.followStats;
     const s = state.follows;
-    if (!stats) return `<span class="stat-chip">统计加载中…</span>`;
-    const chips = [];
-    chips.push(
-      `<button class="stat-chip" type="button" data-action="filter-category" data-category=""
-        aria-pressed="${s.category === '' ? 'true' : 'false'}">全部
-        <span class="stat-chip__count">${fmtInt(stats.total)}</span></button>`
-    );
-    const categories = stats.categories || {};
+    const totalLabel = stats ? `全部分类 (${fmtInt(stats.total)})` : '全部分类';
+    const options = [`<option value="">${esc(totalLabel)}</option>`];
     CATEGORIES.forEach((name) => {
-      const count = Number(categories[name] || 0);
-      if (!count) return;
-      chips.push(
-        `<button class="stat-chip" type="button" data-action="filter-category" data-category="${escAttr(
-          name
-        )}" aria-pressed="${s.category === name ? 'true' : 'false'}">${esc(name)}
-         <span class="stat-chip__count">${fmtInt(count)}</span></button>`
+      const count = stats && stats.categories ? Number(stats.categories[name] || 0) : null;
+      if (stats && !count) return;
+      const label = stats ? `${name} (${fmtInt(count)})` : name;
+      options.push(
+        `<option value="${escAttr(name)}"${s.category === name ? ' selected' : ''}>${esc(label)}</option>`
       );
     });
-    if (Number(stats.uncategorized || 0) > 0) {
-      chips.push(
-        `<button class="stat-chip" type="button" data-action="filter-category" data-category="__none__"
-          aria-pressed="${s.category === '__none__' ? 'true' : 'false'}">未分类
-          <span class="stat-chip__count">${fmtInt(stats.uncategorized)}</span></button>`
+    const uncategorized = stats ? Number(stats.uncategorized || 0) : 0;
+    if (!stats || uncategorized > 0 || s.category === '__none__') {
+      options.push(
+        `<option value="__none__"${s.category === '__none__' ? ' selected' : ''}>未分类${
+          stats ? ` (${fmtInt(uncategorized)})` : ''
+        }</option>`
       );
     }
-    return chips.join('');
+    return options.join('');
   }
 
-  function updateStatStrip() {
-    setHTML('#stat-strip', statStripTpl());
-    const stats = state.followStats;
-    const hint = $('#stat-strip-hint');
-    if (hint) hint.textContent = statHintText();
-    setText('#follows-stat-total', stats ? fmtInt(stats.total) : '—');
-    setText('#follows-stat-mutual', stats ? fmtInt(stats.mutual) : '—');
+  function updateCategorySelect() {
+    const select = $('#follows-category');
+    if (!select) return;
+    select.innerHTML = categoryOptionsTpl();
+    if (state.follows.category) select.value = state.follows.category;
   }
 
   async function fetchFollowStats() {
@@ -2183,7 +2107,11 @@
         uncategorized: Number(data.uncategorized) || 0,
         categories: data.categories && typeof data.categories === 'object' ? data.categories : {},
       };
-      if (state.route === 'follows') updateStatStrip();
+      if (state.route === 'follows') {
+        updateCategorySelect();
+        setText('#follows-stat-total', fmtInt(state.followStats.total));
+        setText('#follows-stat-mutual', fmtInt(state.followStats.mutual));
+      }
     } catch (err) {
       if (err && err.status === 401) return;
       /* stats are decorative — keep going */
@@ -2317,18 +2245,7 @@
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-follows">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
     }
-    syncFollowSelectionUI();
     renderActionBar();
-  }
-
-  /* the danger tile lives outside the list, so its count/disabled state has to
-     be synced whenever the selection changes */
-  function syncFollowSelectionUI() {
-    const count = state.follows.selected.size;
-    setText('#follows-danger-count', fmtInt(count));
-    $$('[data-action="unfollow-selected"]').forEach((btn) => {
-      btn.disabled = count === 0;
-    });
   }
 
   function toggleFollowSelection(input) {
@@ -2336,7 +2253,6 @@
     if (input.checked) state.follows.selected.add(mid);
     else state.follows.selected.delete(mid);
     updateFollowsMeta();
-    syncFollowSelectionUI();
     renderActionBar();
   }
 
@@ -2371,14 +2287,6 @@
   function clearFollowSelection() {
     state.follows.selected.clear();
     renderFollowList();
-  }
-
-  function applyCategoryFilter(category) {
-    state.follows.category = category || '';
-    const select = $('#follows-category');
-    if (select) select.value = state.follows.category;
-    updateStatStrip();
-    fetchFollows(true);
   }
 
   async function classifyByRule(btn) {
@@ -2453,7 +2361,6 @@
       heroTpl({
         eyebrow: '清理 · 动态',
         title: '动态',
-        lead: '按类型、关键词和日期范围筛出想要的动态，再批量删除。删除会从 B 站永久移除。',
         stats:
           statTpl(fmtInt(s.items.length), '已加载', 'dynamics-stat-loaded') +
           statTpl(fmtInt(s.selected.size), '已选择', 'dynamics-stat-selected'),
@@ -2480,8 +2387,9 @@
             <label for="dynamics-to">至</label>
             <input class="date-input" id="dynamics-to" type="date" value="${escAttr(s.to)}" aria-label="结束日期">
           </div>
-          <span class="toolbar__spacer"></span>
-          <button class="btn btn--ghost btn--small" type="button" data-action="clear-dynamics-filters">清除筛选</button>
+          <div class="toolbar__actions">
+            <button class="btn btn--ghost btn--small" type="button" data-action="clear-dynamics-filters">清除筛选</button>
+          </div>
         </div>
       </div>` +
       `<section class="section">
@@ -2642,7 +2550,7 @@
       title: `删除选中的 ${fmtInt(n)} 条动态？`,
       body: '删除会从 B 站动态中永久移除这些内容，无法恢复。任务开始前会先在本地导出备份。',
       note: '如果动态里有你不想删的转发或图片，建议先取消勾选再确认。',
-      confirmLabel: '确认删除',
+      confirmLabel: `删除 ${fmtInt(n)} 条`,
       danger: true,
       onConfirm: async () => {
         const task = await api.post('/api/tasks', {
@@ -2674,7 +2582,6 @@
       heroTpl({
         eyebrow: '整理 · 收藏夹',
         title: '收藏夹',
-        lead: '先选收藏夹，再处理不想再留着的内容。清空整个收藏夹需要手打确认词。',
         parchment: true,
         stats:
           statTpl(fmtInt(s.folders.length), '收藏夹', 'fav-stat-count') +
@@ -2693,10 +2600,17 @@
                 <input class="search__input" id="fav-q" type="search" placeholder="搜索标题或 UP 主"
                        value="${escAttr(s.q)}" autocomplete="off">
               </div>
-              <span class="toolbar__spacer"></span>
-              <button class="btn btn--ghost btn--small" type="button" data-action="select-favs">全选本页</button>
-              <button class="btn btn--ghost btn--small" type="button" data-action="invert-favs">反选</button>
-              <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
+              <div class="toolbar__actions">
+                <button class="btn btn--ghost btn--small" type="button" data-action="select-favs">全选本页</button>
+                <button class="btn btn--ghost btn--small" type="button" data-action="invert-favs">反选</button>
+                <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
+                <button class="btn btn--danger-outline btn--small" type="button" data-action="fav-clear-folder"${
+                  folder ? '' : ' disabled'
+                }>清空此收藏夹</button>
+                <button class="btn btn--danger-text btn--small" type="button" data-action="fav-clean-invalid"${
+                  folder ? '' : ' disabled'
+                }>清理失效内容</button>
+              </div>
             </div>
           </div>
           <section class="section section--flush">
@@ -2708,32 +2622,6 @@
           </section>
         </div>
       </div>` +
-      dangerZoneTpl({
-        eyebrow: '危险操作',
-        title: '清空之前，请先确认',
-        lead:
-          '清空收藏夹和清理失效内容都会取消收藏。任务开始前会先在本机导出 CSV + JSONL 备份。清空整个收藏夹需要手打确认词。',
-        rows: [
-          {
-            title: '清空当前收藏夹',
-            desc: folder
-              ? `将取消收藏「${esc(folder.title)}」中的全部 ${fmtInt(
-                  folder.count
-                )} 个内容，收藏夹本身会保留。`
-              : '先在左侧选择一个收藏夹。',
-            actions: `<button class="btn btn--on-dark btn--small" type="button" data-action="fav-clear-folder"${
-              folder ? '' : ' disabled'
-            }>清空此收藏夹</button>`,
-          },
-          {
-            title: '清理失效内容',
-            desc: '只处理当前收藏夹里已经失效（视频被删或不可见）的内容，同样需要手打确认词。',
-            actions: `<button class="btn btn--on-dark btn--small" type="button" data-action="fav-clean-invalid"${
-              folder ? '' : ' disabled'
-            }>清理失效内容</button>`,
-          },
-        ],
-      }) +
       pageFooterTpl();
 
     if (!s.foldersLoaded) {
@@ -2837,7 +2725,9 @@
       )}"${selected ? ' checked' : ''} aria-label="选择 ${escAttr(item.title)}"><span class="check__box"></span></label>
       <div class="cover">${
         item.cover
-          ? `<img src="${escAttr(item.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+          ? `<img src="${escAttr(item.cover)}" alt="" data-cover="1" data-seed="${Number(
+              String(item.id).slice(-3)
+            ) || 0}" loading="lazy" referrerpolicy="no-referrer">`
           : ''
       }</div>
       <div class="item__main">
@@ -2949,7 +2839,7 @@
       body: `将取消收藏这个收藏夹里的全部 ${fmtInt(folder.count)} 个内容。收藏夹本身会保留。`,
       note: '清空整个收藏夹需要手打确认词。任务开始前会先在本机导出 CSV 与 JSONL 备份。',
       phrase: state.settings.confirm_phrase || '清空',
-      confirmLabel: '确认清空',
+      confirmLabel: '清空收藏夹',
       danger: true,
       onConfirm: async ({ phrase }) => {
         const task = await api.post('/api/tasks', {
@@ -2973,7 +2863,7 @@
       body: '只处理当前收藏夹里已经失效、点开也看不到的内容，其他内容不受影响。',
       note: '这个操作需要手打确认词。任务开始前会先在本机导出 CSV 与 JSONL 备份。',
       phrase: state.settings.confirm_phrase || '清空',
-      confirmLabel: '确认清理',
+      confirmLabel: '清理失效内容',
       danger: true,
       onConfirm: async ({ phrase }) => {
         const task = await api.post('/api/tasks', {
@@ -3023,7 +2913,6 @@
       heroTpl({
         eyebrow: '清理 · 稍后再看',
         title: '稍后再看',
-        lead: '这里堆着的视频大概不会再看第二眼。清空之前，先确认没有想留的。',
         parchment: false,
         stats:
           statTpl(fmtInt(s.total || s.items.length), '视频数', 'toview-stat-total') +
@@ -3032,8 +2921,9 @@
       `<div class="toolbar">
         <div class="page-inner toolbar__inner">
           <p class="list-meta" id="toview-meta">加载中…</p>
-          <span class="toolbar__spacer"></span>
-          <button class="btn btn--secondary btn--small" type="button" data-action="refresh-toview">刷新</button>
+          <div class="toolbar__actions">
+            <button class="btn btn--danger-outline btn--small" type="button" data-action="toview-clear">清空稍后再看</button>
+          </div>
         </div>
       </div>` +
       `<section class="section">
@@ -3042,19 +2932,6 @@
           <div class="list-footer" id="toview-footer"></div>
         </div>
       </section>` +
-      dangerZoneTpl({
-        eyebrow: '危险操作',
-        title: '清空之后，这些视频就真的不在了',
-        lead:
-          '清空稍后再看会移除全部视频，需要手打确认词。任务开始前会先在本机导出 CSV + JSONL 备份，但不会把视频加回来的方法。',
-        rows: [
-          {
-            title: '清空全部稍后再看',
-            desc: `当前共有 ${fmtInt(s.total || s.items.length)} 个视频。清空后列表会变成空的。`,
-            actions: `<button class="btn btn--on-dark btn--small" type="button" data-action="toview-clear">清空稍后再看</button>`,
-          },
-        ],
-      }) +
       pageFooterTpl();
 
     if (!s.loaded) fetchToview(true);
@@ -3141,7 +3018,7 @@
       body: `将移除全部 ${fmtInt(state.toview.total || state.toview.items.length)} 个视频。清空后列表会变成空的。`,
       note: '这个操作需要手打确认词。任务开始前会先在本机导出 CSV 与 JSONL 备份。',
       phrase: state.settings.confirm_phrase || '清空',
-      confirmLabel: '确认清空',
+      confirmLabel: '清空稍后再看',
       danger: true,
       onConfirm: async ({ phrase }) => {
         const task = await api.post('/api/tasks', {
@@ -3197,7 +3074,6 @@
       heroTpl({
         eyebrow: '本地配置',
         title: '设置',
-        lead: '请求节奏、确认词、LLM 分类与备份都保存在本机。修改后点击右下角保存。',
         parchment: true,
       }) +
       `<section class="section"><div class="settings__inner">
@@ -3404,7 +3280,6 @@
       heroTpl({
         eyebrow: '运行记录',
         title: '日志',
-        lead: '所有操作和任务状态都记录在本机，最近 200 条。',
         stats: statTpl(fmtInt(state.logs.items.length), '条记录', 'logs-stat-count'),
       }) +
       `<div class="toolbar">
@@ -3417,8 +3292,9 @@
               <option value="error"${state.logs.level === 'error' ? ' selected' : ''}>error</option>
             </select>
           </div>
-          <span class="toolbar__spacer"></span>
-          <button class="btn btn--secondary btn--small" type="button" data-action="refresh-logs">刷新</button>
+          <div class="toolbar__actions">
+            <button class="btn btn--secondary btn--small" type="button" data-action="refresh-logs">刷新</button>
+          </div>
         </div>
       </div>` +
       `<section class="section">
@@ -3475,9 +3351,6 @@
         return;
       case 'logout':
         logout();
-        return;
-      case 'filter-category':
-        applyCategoryFilter(el.getAttribute('data-category') || '');
         return;
       case 'select-follows':
         selectAllFollows();
@@ -3642,7 +3515,6 @@
     const id = target.id;
     if (id === 'follows-category') {
       state.follows.category = target.value;
-      updateStatStrip();
       fetchFollows(true);
     } else if (id === 'follows-group') {
       state.follows.group = target.value;
@@ -3723,6 +3595,10 @@
         if (img.id === 'qr-image') return;
         if (img.dataset.fallbackApplied === '1') return;
         img.dataset.fallbackApplied = '1';
+        if (img.dataset.cover === '1') {
+          img.src = svgCover(Number(img.dataset.seed) || 0);
+          return;
+        }
         const name = img.dataset.name || img.getAttribute('alt') || 'B';
         img.src = fallbackAvatar(String(name).slice(0, 1) || 'B');
       },
@@ -3931,9 +3807,7 @@
     if (scrollHook === 'bottom') {
       await waitFor(() => state.loggedIn, 3000);
       setTimeout(() => {
-        const danger = document.querySelector('.danger-zone');
-        if (danger) danger.scrollIntoView({ block: 'center' });
-        else window.scrollTo(0, document.body.scrollHeight);
+        window.scrollTo(0, document.body.scrollHeight);
       }, 600);
     }
   }

@@ -329,7 +329,7 @@ BiliCleaner/
 - 测试分四层：`test_bili`（mock requests 响应）、`test_services`（限速/备份/分类/任务引擎）、`test_api`（`TestClient` + mock 模式）、`test_store`/`test_mock`。现在 184 条全绿（bili 76 + services 38 + api 14 + mock/store 56），CI 在 Windows 的 Python 3.12/3.13 上跑 `pytest`。
 - 测试用例里不允许出现真实账号数据；需要样例就自己造，写死几个假 mid 和中文昵称就够了。
 
-## 13. 验证状态（v0.1.0）
+## 13. 验证状态（v0.1.1）
 
 已经验证过的：
 
