@@ -101,6 +101,7 @@ LogEntry = { "ts": "ISO", "level": "info|warn|error", "msg": "text", "task_id": 
 | GET | `/api/backups` | `{items:[BackupFile]}` |
 | GET | `/api/logs?limit=200&task_id=` | `{items:[LogEntry]}` |
 | GET / PUT | `/api/settings` | Settings |
+| POST | `/api/shutdown` | `{ok:true}` 后优雅退出本地服务（运行中任务落盘为可续跑状态） |
 | GET | `/`、`/static/*` | 前端静态文件 |
 
 ### 任务参数

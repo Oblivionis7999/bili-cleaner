@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from datetime import datetime
 from types import SimpleNamespace
@@ -601,6 +602,32 @@ def test_favicon_returns_no_content(api):
     response = api.client.get("/favicon.ico")
     assert response.status_code == 204
     assert response.content == b""
+
+
+def test_shutdown_returns_ok_and_calls_hook_once(api):
+    """关闭接口：先回 200，真正的退出动作走可注入 hook（测试里不杀进程）。"""
+    calls: list[bool] = []
+    hook_called = threading.Event()
+
+    def fake_shutdown_hook() -> None:
+        calls.append(True)
+        hook_called.set()
+
+    api.app.state.shutdown_hook = fake_shutdown_hook
+    api.ctx.shutdown_delay = 0.0
+
+    response = api.client.post("/api/shutdown")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    assert hook_called.wait(3.0), "shutdown hook 没有被调用"
+    assert calls == [True]
+
+    # 重复请求只安排一次退出，接口仍然幂等返回 200
+    again = api.client.post("/api/shutdown")
+    assert again.status_code == 200
+    assert again.json() == {"ok": True}
+    time.sleep(0.2)
+    assert calls == [True]
 
 
 def test_requires_login_when_no_session(monkeypatch, tmp_path):

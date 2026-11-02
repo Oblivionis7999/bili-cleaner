@@ -112,3 +112,16 @@ def update_settings(request: Request, payload: dict = Body(default_factory=dict)
     patch = payload if isinstance(payload, dict) else {}
     _validate_settings(patch)
     return _ctx(request).update_settings(patch)
+
+
+@router.post("/shutdown")
+def shutdown(request: Request) -> dict:
+    """关闭程序（左下角红色关闭按钮用）：先回 200，约 0.2 秒后优雅退出。
+
+    退出动作在后台线程里做，所以这个响应一定先发出去；正在跑的任务会先被
+    TaskManager 停成"下次启动续跑"的可恢复状态。
+    """
+    ctx = _ctx(request)
+    ctx.log("info", "收到关闭请求，准备退出")
+    ctx.schedule_shutdown()
+    return {"ok": True}

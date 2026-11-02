@@ -328,7 +328,7 @@
       q: '',
       selected: new Set(),
     },
-    toview: { items: [], total: 0, loaded: false, loading: false },
+    toview: { items: [], total: 0, loaded: false, loading: false, selected: new Set() },
   };
 
   let DEMO = FORCE_DEMO;
@@ -1051,6 +1051,9 @@
       demo.loggedIn = false;
       return { ok: true };
     }
+    if (p === '/api/shutdown' && m === 'POST') {
+      return { ok: true };
+    }
 
     /* follows */
     if (p === '/api/follows/stats') return demoFollowStats();
@@ -1541,6 +1544,15 @@
             <div class="action-bar__actions">
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
               <button class="btn btn--danger btn--small" type="button" data-action="fav-unfavorite-selected">取消收藏选中</button>
+            </div>
+          </div>`;
+      } else if (state.route === 'toview' && state.toview.selected.size > 0) {
+        html = `
+          <div class="action-bar__inner">
+            <p class="action-bar__count">已选 <strong>${fmtInt(state.toview.selected.size)}</strong> 个视频
+              <span class="action-bar__hint">· 仅支持整体清空</span></p>
+            <div class="action-bar__actions">
+              <button class="btn btn--ghost btn--small" type="button" data-action="clear-toview-selection">清除选择</button>
             </div>
           </div>`;
       }
@@ -2193,7 +2205,7 @@
       .map((group) => `<span class="chip chip--source">${esc(group)}</span>`)
       .join('');
     const face = item.face || fallbackAvatar((item.name || 'B').slice(0, 1));
-    return `<div class="item" data-mid="${item.mid}">
+    return `<div class="item${selected ? ' is-selected' : ''}" data-mid="${item.mid}">
       <label class="check"><input type="checkbox" data-check-follow data-id="${item.mid}"${
       selected ? ' checked' : ''
     } aria-label="选择 ${escAttr(item.name)}"><span class="check__box"></span></label>
@@ -2419,7 +2431,7 @@
     const text = item.text || '';
     const title = videoTitle || truncate(text, 60) || '（无正文）';
     const summary = text && videoTitle ? truncate(text, 140) : '';
-    return `<div class="item" data-id="${escAttr(item.id)}">
+    return `<div class="item${selected ? ' is-selected' : ''}" data-id="${escAttr(item.id)}">
       <label class="check"><input type="checkbox" data-check-dynamic data-id="${escAttr(
         item.id
       )}"${selected ? ' checked' : ''} aria-label="选择这条动态"><span class="check__box"></span></label>
@@ -2508,18 +2520,23 @@
     renderActionBar();
   }
 
-  function toggleDynamicSelection(input) {
-    const id = input.getAttribute('data-id');
-    if (input.checked) state.dynamics.selected.add(id);
-    else state.dynamics.selected.delete(id);
-    setText('#dynamics-stat-selected', fmtInt(state.dynamics.selected.size));
+  function updateDynamicsMeta() {
+    const s = state.dynamics;
+    setText('#dynamics-stat-loaded', fmtInt(s.items.length));
+    setText('#dynamics-stat-selected', fmtInt(s.selected.size));
     const meta = $('#dynamics-meta');
     if (meta) {
-      const s = state.dynamics;
       meta.innerHTML = `已加载 <strong>${fmtInt(s.items.length)}</strong> 条${
         s.selected.size ? ` · 已选 <strong>${fmtInt(s.selected.size)}</strong> 条` : ''
       }${s.hasMore ? '' : ' · 没有更多了'}`;
     }
+  }
+
+  function toggleDynamicSelection(input) {
+    const id = input.getAttribute('data-id');
+    if (input.checked) state.dynamics.selected.add(id);
+    else state.dynamics.selected.delete(id);
+    updateDynamicsMeta();
     renderActionBar();
   }
 
@@ -2719,7 +2736,7 @@
     const key = `${item.id}:${item.type}`;
     const selected = state.favorites.selected.has(key);
     const typeLabel = Number(item.type) === 12 ? '专栏' : '视频';
-    return `<div class="item item--fav">
+    return `<div class="item item--fav${selected ? ' is-selected' : ''}" data-key="${escAttr(key)}">
       <label class="check"><input type="checkbox" data-check-fav data-key="${escAttr(
         key
       )}"${selected ? ' checked' : ''} aria-label="选择 ${escAttr(item.title)}"><span class="check__box"></span></label>
@@ -2786,10 +2803,7 @@
     renderActionBar();
   }
 
-  function toggleFavSelection(input) {
-    const key = input.getAttribute('data-key');
-    if (input.checked) state.favorites.selected.add(key);
-    else state.favorites.selected.delete(key);
+  function updateFavMeta() {
     const s = state.favorites;
     const meta = $('#fav-meta');
     if (meta) {
@@ -2797,6 +2811,13 @@
         s.total
       )}</strong> 个内容${s.selected.size ? ` · 已选 <strong>${fmtInt(s.selected.size)}</strong> 个` : ''}`;
     }
+  }
+
+  function toggleFavSelection(input) {
+    const key = input.getAttribute('data-key');
+    if (input.checked) state.favorites.selected.add(key);
+    else state.favorites.selected.delete(key);
+    updateFavMeta();
     renderActionBar();
   }
 
@@ -2942,7 +2963,8 @@
     const duration = Number(item.duration) || 0;
     const progress = Number(item.progress) || 0;
     const watched = progress > 0 && duration > 0 ? clamp(Math.round((progress / duration) * 100), 1, 99) : 0;
-    return `<div class="item item--no-check">
+    const selected = state.toview.selected.has(Number(item.aid));
+    return `<div class="item item--no-check${selected ? ' is-selected' : ''}" data-aid="${item.aid}">
       <div class="type-tile" aria-hidden="true">${PLAY_ICON}</div>
       <div class="item__main">
         <p class="item__title">${esc(item.title || '（无标题）')}</p>
@@ -2966,6 +2988,7 @@
     if (reset) {
       s.items = [];
       s.loaded = false;
+      s.selected.clear();
     }
     if (state.route === 'toview') renderToviewList();
     try {
@@ -2998,10 +3021,7 @@
         desc: '没有待清理的视频。',
       });
     else list.innerHTML = s.items.map(toviewRowTpl).join('');
-    setText('#toview-stat-total', fmtInt(s.total || s.items.length));
-    setText('#toview-stat-loaded', fmtInt(s.items.length));
-    const meta = $('#toview-meta');
-    if (meta) meta.innerHTML = `共 <strong>${fmtInt(s.total)}</strong> 个视频 · 已加载 <strong>${fmtInt(s.items.length)}</strong> 个`;
+    updateToviewMeta();
     const footer = $('#toview-footer');
     if (footer) {
       if (s.loading && s.items.length) footer.innerHTML = '<span class="list-footer__done">正在加载…</span>';
@@ -3009,6 +3029,19 @@
         footer.innerHTML =
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-toview">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
+    }
+    renderActionBar();
+  }
+
+  function updateToviewMeta() {
+    const s = state.toview;
+    setText('#toview-stat-total', fmtInt(s.total || s.items.length));
+    setText('#toview-stat-loaded', fmtInt(s.items.length));
+    const meta = $('#toview-meta');
+    if (meta) {
+      meta.innerHTML = `共 <strong>${fmtInt(s.total)}</strong> 个视频 · 已加载 <strong>${fmtInt(
+        s.items.length
+      )}</strong> 个${s.selected.size ? ` · 已选 <strong>${fmtInt(s.selected.size)}</strong> 个` : ''}`;
     }
   }
 
@@ -3342,6 +3375,256 @@
     if (meta) meta.innerHTML = `共 <strong>${fmtInt(items.length)}</strong> 条${logs.level ? ` · 仅看 ${esc(logs.level)}` : ''}`;
   }
 
+  /* ================================================ 13b. selection gestures */
+  /* Desktop-only drag-select + Shift range select. Touch/mobile keeps plain
+     checkbox interaction (gestures are disabled below 641px). */
+
+  const rowAnchors = { follows: null, dynamics: null, favorites: null, toview: null };
+  let dragSession = null;
+
+  function isDesktopPointer() {
+    return window.matchMedia('(min-width: 641px)').matches;
+  }
+
+  function selectionContextForRoute() {
+    const route = state.route;
+    if (route === 'follows') {
+      const list = $('#follows-list');
+      if (!list) return null;
+      return {
+        route,
+        list,
+        selected: state.follows.selected,
+        keyOf: (row) => Number(row.getAttribute('data-mid')),
+        after: () => {
+          updateFollowsMeta();
+          renderActionBar();
+        },
+        rerender: renderFollowList,
+      };
+    }
+    if (route === 'dynamics') {
+      const list = $('#dynamics-list');
+      if (!list) return null;
+      return {
+        route,
+        list,
+        selected: state.dynamics.selected,
+        keyOf: (row) => row.getAttribute('data-id'),
+        after: () => {
+          updateDynamicsMeta();
+          renderActionBar();
+        },
+        rerender: renderDynamicList,
+      };
+    }
+    if (route === 'favorites') {
+      const list = $('#fav-list');
+      if (!list) return null;
+      return {
+        route,
+        list,
+        selected: state.favorites.selected,
+        keyOf: (row) => row.getAttribute('data-key'),
+        after: () => {
+          updateFavMeta();
+          renderActionBar();
+        },
+        rerender: renderFavList,
+      };
+    }
+    if (route === 'toview') {
+      const list = $('#toview-list');
+      if (!list) return null;
+      return {
+        route,
+        list,
+        selected: state.toview.selected,
+        keyOf: (row) => Number(row.getAttribute('data-aid')),
+        after: () => {
+          updateToviewMeta();
+          renderActionBar();
+        },
+        rerender: renderToviewList,
+      };
+    }
+    return null;
+  }
+
+  function rowsForContext(ctx) {
+    return Array.from(ctx.list.querySelectorAll('.item'));
+  }
+
+  function rowSelected(row, ctx) {
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (cb) return cb.checked;
+    const key = ctx.keyOf(row);
+    return row.classList.contains('is-selected') || (key != null && ctx.selected.has(key));
+  }
+
+  function setRowSelected(row, selected) {
+    row.classList.toggle('is-selected', !!selected);
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = !!selected;
+  }
+
+  function applyDragBand(currentIndex) {
+    const s = dragSession;
+    if (!s) return;
+    const lo = Math.min(s.anchorIndex, currentIndex);
+    const hi = Math.max(s.anchorIndex, currentIndex);
+    for (let i = 0; i < s.rows.length; i += 1) {
+      const target = i >= lo && i <= hi ? s.mode === 'add' : s.originals[i];
+      if (s.applied.get(i) === target) continue;
+      s.applied.set(i, target);
+      setRowSelected(s.rows[i], target);
+    }
+    s.ctx.after();
+  }
+
+  function onDragMouseMove(event) {
+    if (!dragSession) return;
+    event.preventDefault();
+    const s = dragSession;
+    if (Math.abs(event.clientY - s.startY) > 3 || Math.abs(event.clientX - s.startX) > 3) {
+      s.moved = true;
+    }
+    const el = document.elementFromPoint(event.clientX, event.clientY);
+    if (!el) return;
+    const row = el.closest('.item');
+    if (!row || !s.ctx.list.contains(row)) return;
+    const index = s.rows.indexOf(row);
+    if (index < 0) return;
+    applyDragBand(index);
+  }
+
+  function onDragMouseUp() {
+    window.removeEventListener('mousemove', onDragMouseMove, true);
+    window.removeEventListener('mouseup', onDragMouseUp, true);
+    window.removeEventListener('blur', onDragMouseUp, true);
+    document.body.classList.remove('is-drag-selecting');
+    const s = dragSession;
+    dragSession = null;
+    if (!s || !s.moved) return;
+    const rows = s.rows.filter((row) => row.isConnected);
+    rows.forEach((row) => {
+      const key = s.ctx.keyOf(row);
+      if (key == null || Number.isNaN(key)) return;
+      if (rowSelected(row, s.ctx)) s.ctx.selected.add(key);
+      else s.ctx.selected.delete(key);
+    });
+    s.ctx.rerender();
+  }
+
+  function startRowDrag(ctx, rows, anchorIndex, event) {
+    const originals = rows.map((row) => rowSelected(row, ctx));
+    dragSession = {
+      ctx,
+      rows,
+      anchorIndex,
+      mode: originals[anchorIndex] ? 'remove' : 'add',
+      originals,
+      applied: new Map(),
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+    document.body.classList.add('is-drag-selecting');
+    window.addEventListener('mousemove', onDragMouseMove, true);
+    window.addEventListener('mouseup', onDragMouseUp, true);
+    window.addEventListener('blur', onDragMouseUp, true);
+  }
+
+  function onDocumentMouseDown(event) {
+    if (!isDesktopPointer() || event.button !== 0) return;
+    if (document.body.classList.contains('is-shut-down')) return;
+    if (event.target.closest('#modal-root')) return;
+    const row = event.target.closest('.item');
+    if (!row) return;
+    const ctx = selectionContextForRoute();
+    if (!ctx || !ctx.list.contains(row)) return;
+    const rows = rowsForContext(ctx);
+    const index = rows.indexOf(row);
+    if (index < 0) return;
+    rowAnchors[ctx.route] = index;
+    // never hijack the checkbox / buttons / links inside a row
+    if (event.target.closest('input, label, button, a, select, textarea')) return;
+    event.preventDefault();
+    startRowDrag(ctx, rows, index, event);
+  }
+
+  function applyShiftRange(ctx, row) {
+    const rows = rowsForContext(ctx);
+    const targetIndex = rows.indexOf(row);
+    if (targetIndex < 0) return;
+    let anchor = rowAnchors[ctx.route];
+    if (anchor == null || anchor < 0 || anchor >= rows.length) anchor = targetIndex;
+    const lo = Math.min(anchor, targetIndex);
+    const hi = Math.max(anchor, targetIndex);
+    const deselect = rowSelected(row, ctx);
+    for (let i = lo; i <= hi; i += 1) {
+      setRowSelected(rows[i], !deselect);
+      const key = ctx.keyOf(rows[i]);
+      if (key == null || Number.isNaN(key)) continue;
+      if (deselect) ctx.selected.delete(key);
+      else ctx.selected.add(key);
+    }
+    rowAnchors[ctx.route] = targetIndex;
+    ctx.after();
+  }
+
+  /* ---------------------------------------------------------- shutdown */
+
+  function openShutdownDialog() {
+    if (document.body.classList.contains('is-shut-down')) return;
+    openDialog({
+      title: '关闭 BiliCleaner？',
+      body: '关闭后正在跑的任务会暂停，下次启动会从断点继续。',
+      confirmLabel: '关闭程序',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api.post('/api/shutdown', {});
+        } catch (_) {
+          toast('后端未就绪，无法关闭程序');
+          return;
+        }
+        showShutdownScreen();
+      },
+    });
+  }
+
+  function showShutdownScreen() {
+    stopTaskPolling();
+    stopQrPolling();
+    stopDockTicker();
+    closeDialog();
+    document.body.classList.add('is-shut-down');
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    let screen = $('#shutdown-screen');
+    if (!screen) {
+      screen = document.createElement('div');
+      screen.id = 'shutdown-screen';
+      screen.className = 'shutdown-screen';
+      screen.setAttribute('role', 'status');
+      screen.innerHTML = `
+        <div class="shutdown-screen__card">
+          <div class="shutdown-screen__mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round">
+              <path d="M12 3v9"></path>
+              <path d="M6.34 6.34a8 8 0 1 0 11.32 0"></path>
+            </svg>
+          </div>
+          <p class="shutdown-screen__title">BiliCleaner 已关闭</p>
+          <p class="shutdown-screen__desc">可以关掉这个页面了。</p>
+        </div>`;
+      document.body.appendChild(screen);
+    }
+    screen.style.display = 'grid';
+  }
+
   /* ============================================================ 14. handlers */
 
   function handleAction(action, el) {
@@ -3430,6 +3713,10 @@
       case 'toview-clear':
         openToviewClearDialog();
         return;
+      case 'clear-toview-selection':
+        state.toview.selected.clear();
+        renderToviewList();
+        return;
       case 'save-settings':
         saveSettings(el);
         return;
@@ -3464,6 +3751,20 @@
   }
 
   function onDocumentClick(event) {
+    if (event.shiftKey && !document.body.classList.contains('is-shut-down')) {
+      const shiftRow = event.target.closest('.item');
+      if (
+        shiftRow &&
+        !event.target.closest('input, label, button, a, select, textarea')
+      ) {
+        const shiftCtx = selectionContextForRoute();
+        if (shiftCtx && shiftCtx.list.contains(shiftRow)) {
+          event.preventDefault();
+          applyShiftRange(shiftCtx, shiftRow);
+          return;
+        }
+      }
+    }
     const dialogAction = event.target.closest('[data-dialog-action]');
     if (dialogAction) {
       if (dialogAction.getAttribute('data-dialog-action') === 'cancel') closeDialog();
@@ -3640,6 +3941,7 @@
 
   function bindGlobalEvents() {
     document.addEventListener('click', onDocumentClick, false);
+    document.addEventListener('mousedown', onDocumentMouseDown, false);
     document.addEventListener('input', onDocumentInput, false);
     document.addEventListener('change', onDocumentChange, false);
     document.addEventListener('keydown', onDocumentKeydown, false);
@@ -3651,6 +3953,8 @@
     if (refreshBtn) refreshBtn.addEventListener('click', () => startQrLogin());
     const demoBtn = $('#qr-demo');
     if (demoBtn) demoBtn.addEventListener('click', demoSimulateLogin);
+    const shutdownBtn = $('#shutdown-btn');
+    if (shutdownBtn) shutdownBtn.addEventListener('click', openShutdownDialog);
   }
 
   function defaultRoute() {

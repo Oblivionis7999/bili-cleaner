@@ -26,6 +26,8 @@
 
 **启动时会自动接上上次的进度。** `TaskManager.start()` 会把持久化任务里状态是 `running` / `cooldown` 的改成 `queued` 重新排队，message 写"检测到上次未完成，从断点继续"；用户主动暂停的任务保持 `paused`，不会自己动。也就是说关掉程序不等于放弃任务，下次打开它会接着跑。不想继续的，在它真正开跑之前点停止。
 
+**退出程序**走 `POST /api/shutdown`：路由先返回 `{ok:true}`，后台线程延迟 0.2 秒、调 `TaskManager.shutdown()` 把运行中的任务中断成 `queued` 落盘，再让 uvicorn 优雅关停（拿不到 server 实例时用 SIGINT，另加 3 秒 `os._exit` 保险丝）。前端左下角红色按钮就是这个入口。
+
 ## 3. 模块图
 
 ```text
@@ -105,7 +107,7 @@
 | `web/*` | 四个 Tab、登录页、设置页、日志页、任务浮层 | 业务规则 | 已实现 |
 | `mock/*` | 假客户端同接口替身、大量中文假数据、可注入假风控 | 被生产代码依赖 | 已实现 |
 
-状态里的"已实现"指模拟数据下跑通、有测试覆盖。`bili/*` 在作者自己的真实账号上做过一次只读 + 小规模写冒烟（v0.1.0 发布前），但 B 站接口可能变，仍然建议用自己的账号按 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 先跑一遍。
+状态里的"已实现"指模拟数据下跑通、有测试覆盖。`bili/*` 在作者自己的真实账号上做过一次只读 + 小规模写冒烟（v0.1.2 发布前），但 B 站接口可能变，仍然建议用自己的账号按 [`docs/SMOKE-TEST.md`](SMOKE-TEST.md) 先跑一遍。
 
 ## 5. 一次取关任务的完整路径
 
@@ -329,7 +331,7 @@ BiliCleaner/
 - 测试分四层：`test_bili`（mock requests 响应）、`test_services`（限速/备份/分类/任务引擎）、`test_api`（`TestClient` + mock 模式）、`test_store`/`test_mock`。现在 184 条全绿（bili 76 + services 38 + api 14 + mock/store 56），CI 在 Windows 的 Python 3.12/3.13 上跑 `pytest`。
 - 测试用例里不允许出现真实账号数据；需要样例就自己造，写死几个假 mid 和中文昵称就够了。
 
-## 13. 验证状态（v0.1.1）
+## 13. 验证状态（v0.1.2）
 
 已经验证过的：
 

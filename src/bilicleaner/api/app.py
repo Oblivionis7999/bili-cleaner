@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -108,6 +109,13 @@ class AppContext:
             logger=self.log,
         )
         self.tm.add_listener(self._on_task_event)
+
+        # 关闭流程：app.state.shutdown_hook 是真正退出的动作（测试可替换），
+        # shutdown_delay 让 HTTP 响应先发出去再动手。
+        self.app: FastAPI | None = None
+        self.shutdown_delay = 0.2
+        self._shutdown_lock = threading.Lock()
+        self._shutdown_started = False
 
     # ------------------------------------------------------------ 日志/设置
 
@@ -523,6 +531,58 @@ class AppContext:
         if task.get("status") in ("done", "failed", "stopped"):
             self.invalidate()
 
+    # ------------------------------------------------------------ 关闭程序
+
+    def schedule_shutdown(self, delay: float | None = None) -> bool:
+        """安排进程退出：立即返回，让 HTTP 响应先发出去。
+
+        真正的退出动作是可替换的 ``app.state.shutdown_hook``（测试注入假实现，
+        避免 TestClient 把 pytest 进程杀掉）。返回 False 表示已经在退出流程里。
+        """
+        with self._shutdown_lock:
+            if self._shutdown_started:
+                return False
+            self._shutdown_started = True
+        wait = self.shutdown_delay if delay is None else max(0.0, float(delay))
+        threading.Thread(
+            target=self._perform_shutdown,
+            args=(wait,),
+            name="bilicleaner-shutdown",
+            daemon=True,
+        ).start()
+        return True
+
+    def _perform_shutdown(self, delay: float) -> None:
+        """延迟后：先把任务引擎停成可续跑状态，再执行退出动作。"""
+        if delay > 0:
+            time.sleep(delay)
+        # 1) 先停任务引擎：正在跑的任务会被标记为 queued，下次启动从操作日志续跑
+        try:
+            self.tm.shutdown(timeout=5.0)
+        except Exception as exc:  # noqa: BLE001 - 退不干净也要继续退出
+            self.log("warn", f"任务引擎停机失败：{exc}")
+        self.log("info", "收到关闭请求，正在退出")
+
+        # 2) 真正退出：默认走 uvicorn 优雅退出；测试/嵌入场景可替换 hook
+        hook = None
+        app = self.app
+        if app is not None:
+            hook = getattr(app.state, "shutdown_hook", None)
+        if callable(hook):
+            try:
+                hook()
+                return
+            except Exception as exc:  # noqa: BLE001 - hook 失败则强退
+                self.log("warn", f"退出 hook 失败，强制退出：{exc}")
+        _force_exit()
+
+
+def _force_exit(delay: float = 0.0) -> None:
+    """兜底退出：直接结束进程（任务状态已落盘，不依赖 atexit）。"""
+    if delay > 0:
+        time.sleep(delay)
+    os._exit(0)
+
 
 # ---------------------------------------------------------------- 错误处理
 
@@ -688,6 +748,33 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.ctx = ctx
+    ctx.app = app
+
+    def _default_shutdown_hook() -> None:
+        """真正退出进程：优先 uvicorn 优雅退出，最终 os._exit 兜底。
+
+        - 启动器如果把 ``uvicorn.Server`` 挂在 ``app.state.server`` 上，直接用
+          ``server.should_exit = True``；
+        - 否则向本进程发 SIGINT —— ``uvicorn.run()`` 在主线程注册了信号处理器，
+          会走正常的优雅关停流程（源码模式与 PyInstaller exe 模式都成立）；
+        - 3 秒内还没退干净就 ``os._exit(0)``（任务状态早已落盘）。
+        """
+        server = getattr(app.state, "server", None)
+        should_exit = getattr(server, "should_exit", None) if server is not None else None
+        if server is not None and isinstance(should_exit, bool):
+            server.should_exit = True
+            _start_hard_exit_timer()
+            return
+        try:
+            import signal
+
+            signal.raise_signal(signal.SIGINT)
+        except Exception:  # noqa: BLE001 - 拿不到信号就强退
+            _force_exit()
+            return
+        _start_hard_exit_timer()
+
+    app.state.shutdown_hook = _default_shutdown_hook
     _register_error_handlers(app)
 
     app.include_router(routes_auth.router)
@@ -696,3 +783,10 @@ def create_app(
     app.include_router(routes_misc.router)
     _register_static(app)
     return app
+
+
+def _start_hard_exit_timer(delay: float = 3.0) -> None:
+    """优雅退出没兜住的保险丝：daemon 线程，不能阻止主进程正常退出。"""
+    timer = threading.Timer(delay, _force_exit)
+    timer.daemon = True
+    timer.start()

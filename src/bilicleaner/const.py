@@ -1,7 +1,7 @@
 """全局常量：分类、任务类型、默认设置、B 站错误码。"""
 
 APP_NAME = "BiliCleaner"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 # 规则分类用的固定类别（顺序即界面展示顺序）
 CATEGORIES = [
