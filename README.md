@@ -107,10 +107,11 @@
 2. 双击运行
 3. 浏览器自动打开 `http://127.0.0.1:8770/`
 
-下载后建议核对一下 SHA256（值在 release 说明里）：
+下载后建议核对一下 SHA256（v0.1.0 的校验值，24,953,852 字节）：
 
 ```powershell
 Get-FileHash .\BiliCleaner.exe -Algorithm SHA256
+# 226B3E9AEC70829BBFA88B1016BE6947A1919DAE08E46B807FDDB7BD4CE9DDC7
 ```
 
 几个提醒：
