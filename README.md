@@ -2,7 +2,7 @@
 
 一个跑在你自己电脑上的 B 站账号清理工具：批量取关、删动态、清空收藏夹、清空稍后再看。请求从本机直接发到 B 站，中间没有我的服务器，也没有别人的服务器。
 
-> 版本 0.1.2。模拟数据下全链路已经跑通：185 条测试全绿，六种任务端到端完成，备份三件套正常生成，`dist\BiliCleaner.exe`（23.8 MB）也能直接跑起来。真实账号也冒烟过一次：只读接口 7/7 通过，小规模写测试（取关 6 个、删 1 条动态、清 4 条稍后再看）全部成功、备份正常。不过你的账号、网络跟我的不一样，第一次用真号还是建议先按 [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md) 跑一遍只读冒烟，再动写操作。
+> 版本 0.1.3。模拟数据下全链路已经跑通：185 条测试全绿，六种任务端到端完成，备份三件套正常生成，`dist\BiliCleaner.exe`（23.8 MB）也能直接跑起来。真实账号也冒烟过一次：只读接口 7/7 通过，小规模写测试（取关 6 个、删 1 条动态、清 4 条稍后再看）全部成功、备份正常。不过你的账号、网络跟我的不一样，第一次用真号还是建议先按 [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md) 跑一遍只读冒烟，再动写操作。
 >
 > 下载：[Releases](https://github.com/Oblivionis7999/bili-cleaner/releases)（Windows exe，约 24 MB）；不想用现成的也可以自己构建，见[怎么跑](#怎么跑)。
 
@@ -24,6 +24,7 @@
 - [扫码登录](#扫码登录)
 - [限速，以及为什么这么慢](#限速以及为什么这么慢)
 - [数据在哪](#数据在哪)
+- [换一台电脑：迁移](#换一台电脑迁移)
 - [常见问题](#常见问题)
 - [免责声明](#免责声明)
 - [License](#license)
@@ -103,23 +104,24 @@
 
 ## 下载
 
-从 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下 `BiliCleaner.exe`（v0.1.2，Windows 10/11 x64，约 24 MB）。单文件，不用装 Python，HTML/CSS/JS 都打在里面了。
+从 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下 `BiliCleaner.exe`（v0.1.3，Windows 10/11 x64，约 24 MB）。单文件，不用装 Python，HTML/CSS/JS 都打在里面了。
 
 1. 下载 `BiliCleaner.exe`
 2. 双击运行
-3. 浏览器自动打开 `http://127.0.0.1:8770/`
+3. 浏览器自动打开 `http://127.0.0.1:8770/`（端口被占用会自动顺延到 8771、8772…，以启动时打印的地址为准）
 
-下载后建议核对一下 SHA256（v0.1.2 的校验值，24,957,810 字节）：
+下载后建议核对一下 SHA256（v0.1.3 的校验值，24,958,232 字节）：
 
 ```powershell
 Get-FileHash .\BiliCleaner.exe -Algorithm SHA256
-# AB477EAA73C838C97560D00F43E5EA59039D1AFB91F5BAD91829C062B83EEF83
+# 961EF70E0135F433DBD9E21A6194C52200AD9371F08EE30DDF03FADEEDDDC421
 ```
 
 几个提醒：
 
 - exe 没有代码签名，Windows SmartScreen 可能提示"未知发布者"。确认文件来自上面的 Releases 页面再放行，别用别人转发的 exe。
-- 单文件 exe 每次启动要解压到临时目录，第一次会慢几秒。
+- 单文件 exe 每次启动会把自己解压到 `%TEMP%\_MEI*` 临时目录，第一次会慢几秒；个别杀毒软件可能对这个解压行为误报，认准上面 release 页的 SHA256，对不上就别运行。
+- 程序只监听 `127.0.0.1`，Windows 防火墙一般不会弹入站提示；如果弹了，先想想是不是自己改过 `--host`。
 - 数据目录默认 `%APPDATA%\BiliCleaner`。
 - 不想用现成包、或者想改代码：自己构建，见[怎么跑](#怎么跑)的源码方式和[开发](#开发)里的打包命令。
 
@@ -131,7 +133,7 @@ Get-FileHash .\BiliCleaner.exe -Algorithm SHA256
 
 ### 方式一：exe
 
-去 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下载 `BiliCleaner.exe`，双击运行，浏览器自动打开 `http://127.0.0.1:8770/`。系统要求、SHA256 校验、SmartScreen 提醒都在[下载](#下载)那一节。
+去 [Releases](https://github.com/Oblivionis7999/bili-cleaner/releases) 下载 `BiliCleaner.exe`，双击运行，浏览器自动打开 `http://127.0.0.1:8770/`。端口被占用时地址会自动顺延，以启动横幅打印的为准。系统要求、SHA256 校验、SmartScreen 和杀软误报提醒都在[下载](#下载)那一节。
 
 不想用现成的包，自己构建也行：`python -m pip install -e ".[dev]"` 之后跑 `.\scripts\build_exe.ps1`，产物还是 `dist\BiliCleaner.exe`。完整命令和目录说明见[开发](#开发)。
 
@@ -170,7 +172,7 @@ python -m bilicleaner --no-browser --port 8770
 | 参数 | 作用 |
 |---|---|
 | `--mock` | 模拟数据模式，不连 B 站、不用登录，开发联调用 |
-| `--port 8770` | 端口，被占用会自动往后顺延，最多试 20 个 |
+| `--port 8770` | 端口，被占用会自动往后顺延，最多试 20 个；启动时打印的地址才是实际地址 |
 | `--host 127.0.0.1` | 默认只监听本机。**别改成 0.0.0.0**，那等于把没有密码的管理界面挂到局域网里 |
 | `--data-dir D:\bili-data` | 换数据目录，默认 `%APPDATA%\BiliCleaner` |
 | `--no-browser` | 启动后不自动开浏览器 |
@@ -185,7 +187,7 @@ python -m bilicleaner --no-browser --port 8770
 几点说明：
 
 - 工具不接触账号密码，也没有密码框。
-- 登录成功后拿到的 Cookie（`SESSDATA`、`bili_jct` 这些）用 Windows DPAPI 加密后写进 `session.dat`，只有当前 Windows 用户能解开。换台电脑、换个用户拷过去都解不开。
+- 登录成功后拿到的 Cookie（`SESSDATA`、`bili_jct` 这些）用 Windows DPAPI 加密后写进 `session.dat`，只有当前 Windows 用户能解开。换台电脑、换个用户拷过去都解不开，迁移说明见[换一台电脑：迁移](#换一台电脑迁移)。
 - 登录态会过期，一般几天到几个月不等。过期后任务里会报 `-101`，界面提示重新扫码。
 - 二维码 180 秒过期，过期了点一下刷新。
 - 不想用了就在界面里退出登录，会删掉 `session.dat`。更彻底的办法是去 B 站安全中心，把网页端登录全部失效。
@@ -232,6 +234,20 @@ python -m bilicleaner --no-browser --port 8770
 - 唯一会出网的两件事：调 B 站接口（必须），以及你主动打开 LLM 分类后，把昵称、签名这类公开文本发到你填的那个 `base_url`。其余没有任何请求。
 - 备份文件里有你的收藏和关注，别顺手传到网盘或者某个 git 仓库里。
 
+## 换一台电脑：迁移
+
+换了电脑，exe 本身没什么讲究，数据分两种：能搬的和不能搬的。
+
+**exe 随便搬。** 单文件，复制到哪个目录都能跑——路径带空格、带中文、放在 `C:\` 根目录下都试过，不依赖 Python，也不依赖原来的项目目录。
+
+**登录态不能搬。** `session.dat` 用 Windows DPAPI 加密，密钥绑当前 Windows 用户和这台机器。复制到新电脑解不开，启动后就是未登录状态，得重新扫码；程序不会崩，文件里也看不到明文 Cookie。这是 DPAPI 的特性，不是 bug。
+
+**设置和备份能搬。** 把旧电脑 `%APPDATA%\BiliCleaner\` 下的 `settings.json` 和 `backups\` 复制到新电脑同一个位置，就能接着用。建议先在新电脑启动一次，让程序把目录建出来再覆盖。旧电脑上的任务状态不影响备份文件，`backups\` 单独拷没关系；`logs\` 想留档也可以拷，纯粹用来查历史。
+
+**`tasks.json` 和 `task_ops\` 最好别拷。** 迁移时最稳的做法是不带这两个——或者拷之前先确认里面没有 `queued` / `running` 状态的任务；否则新电脑登录后可能接着跑旧电脑没跑完的任务。
+
+新电脑第一次启动会生成一套全新的数据目录：`/api/me` 显示未登录、登录页能正常出二维码，扫码之后照常使用。
+
 ## 常见问题
 
 **Q：第一次用真实账号，先做什么？**
@@ -275,6 +291,10 @@ python -m bilicleaner --no-browser --port 8770
 **Q：数据怎么彻底删干净？**
 
 界面里退出登录，然后删掉 `%APPDATA%\BiliCleaner` 整个目录。更稳的做法是再去 B 站安全中心让网页登录全部失效。备份目录在 `backups\` 下，删之前想清楚。
+
+**Q：换电脑了，登录态和备份怎么弄？**
+
+登录态搬不了：`session.dat` 绑 Windows 用户和机器，复制到新电脑解不开，直接重新扫码就行（一分钟的事）。设置和备份可以搬：把旧电脑 `%APPDATA%\BiliCleaner\` 下的 `settings.json`、`backups\` 拷到新电脑同名目录，建议先在新电脑启动一次生成目录再覆盖。备份里只有标题、UP、链接这些，没有 Cookie，搬的时候别顺手传到网盘就行。详细步骤见[换一台电脑：迁移](#换一台电脑迁移)。
 
 **Q：`--mock` 是干什么的？**
 

@@ -1799,6 +1799,11 @@
     </div>`;
   }
 
+  function setToolsVisible(id, visible) {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !visible;
+  }
+
   function skeletonRows(count) {
     let html = '';
     for (let i = 0; i < count; i += 1) {
@@ -1867,7 +1872,15 @@
     if (logoutBtn) logoutBtn.hidden = !state.loggedIn;
     if (user) {
       const avatar = $('#nav-avatar');
-      if (avatar) avatar.src = user.face || fallbackAvatar((user.name || 'B').slice(0, 1));
+      if (avatar) {
+        // B站 CDN uses a RefererWhite anti-hotlink check: the <img> must be
+        // no-referrer, and the fallback marker has to be cleared on every
+        // account/route refresh or the initial "B" placeholder sticks forever.
+        delete avatar.dataset.fallbackApplied;
+        avatar.dataset.name = user.name || 'B';
+        avatar.alt = user.name || 'B 站用户';
+        avatar.src = user.face || fallbackAvatar((user.name || 'B').slice(0, 1));
+      }
       setText('#nav-username', user.name || 'B 站用户');
     }
   }
@@ -1977,8 +1990,7 @@
         desc: meta.emptyDesc,
         action: 'go-login',
         actionLabel: '去扫码登录',
-      })}</div></section>` +
-      pageFooterTpl();
+      })}</div></section>`;
     renderActionBar();
   }
 
@@ -2054,8 +2066,8 @@
         <div class="page-inner">
           <div class="list-head">
             <p class="list-meta" id="follows-meta">加载中…</p>
-            <div class="list-tools">
-              <button class="btn btn--ghost btn--small" type="button" data-action="select-follows">全选本分类</button>
+            <div class="list-tools" id="follows-tools" hidden>
+              <button class="btn btn--ghost btn--small" type="button" data-action="select-follows">全选本页</button>
               <button class="btn btn--ghost btn--small" type="button" data-action="invert-follows">反选</button>
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-follows">清除选择</button>
             </div>
@@ -2063,8 +2075,7 @@
           <div class="item-list" id="follows-list">${skeletonRows(6)}</div>
           <div class="list-footer" id="follows-footer"></div>
         </div>
-      </section>` +
-      pageFooterTpl();
+      </section>`;
 
     if (!s.loaded) {
       fetchFollowStats();
@@ -2257,6 +2268,7 @@
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-follows">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
     }
+    setToolsVisible('follows-tools', !!s.loaded && s.items.length > 0);
     renderActionBar();
   }
 
@@ -2373,6 +2385,7 @@
       heroTpl({
         eyebrow: '清理 · 动态',
         title: '动态',
+        parchment: true,
         stats:
           statTpl(fmtInt(s.items.length), '已加载', 'dynamics-stat-loaded') +
           statTpl(fmtInt(s.selected.size), '已选择', 'dynamics-stat-selected'),
@@ -2408,8 +2421,8 @@
         <div class="page-inner">
           <div class="list-head">
             <p class="list-meta" id="dynamics-meta">加载中…</p>
-            <div class="list-tools">
-              <button class="btn btn--ghost btn--small" type="button" data-action="select-dynamics">全选已加载</button>
+            <div class="list-tools" id="dynamics-tools" hidden>
+              <button class="btn btn--ghost btn--small" type="button" data-action="select-dynamics">全选本页</button>
               <button class="btn btn--ghost btn--small" type="button" data-action="invert-dynamics">反选</button>
               <button class="btn btn--ghost btn--small" type="button" data-action="clear-dynamics">清除选择</button>
             </div>
@@ -2417,8 +2430,7 @@
           <div class="item-list" id="dynamics-list">${skeletonRows(5)}</div>
           <div class="list-footer" id="dynamics-footer"></div>
         </div>
-      </section>` +
-      pageFooterTpl();
+      </section>`;
 
     if (!s.loaded) fetchDynamics(true);
     else renderDynamicList();
@@ -2517,6 +2529,7 @@
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-dynamics">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
     }
+    setToolsVisible('dynamics-tools', !!s.loaded && s.items.length > 0);
     renderActionBar();
   }
 
@@ -2604,42 +2617,46 @@
           statTpl(fmtInt(s.folders.length), '收藏夹', 'fav-stat-count') +
           statTpl(folder ? fmtInt(folder.count) : '—', '当前夹内容', 'fav-stat-total'),
       }) +
-      `<div class="fav-layout">
-        <aside class="fav-sidebar" aria-label="收藏夹列表">
-          <p class="fav-sidebar__title">我的收藏夹</p>
-          <div class="folder-list" id="folder-list">${folderListTpl()}</div>
-        </aside>
-        <div class="fav-main">
-          <div class="toolbar" role="search">
-            <div class="page-inner toolbar__inner">
-              <div class="search">
-                ${SEARCH_ICON}
-                <input class="search__input" id="fav-q" type="search" placeholder="搜索标题或 UP 主"
-                       value="${escAttr(s.q)}" autocomplete="off">
-              </div>
-              <div class="toolbar__actions">
-                <button class="btn btn--ghost btn--small" type="button" data-action="select-favs">全选本页</button>
-                <button class="btn btn--ghost btn--small" type="button" data-action="invert-favs">反选</button>
-                <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
-                <button class="btn btn--danger-outline btn--small" type="button" data-action="fav-clear-folder"${
-                  folder ? '' : ' disabled'
-                }>清空此收藏夹</button>
-                <button class="btn btn--danger-text btn--small" type="button" data-action="fav-clean-invalid"${
-                  folder ? '' : ' disabled'
-                }>清理失效内容</button>
-              </div>
-            </div>
+      `<aside class="fav-sidebar" id="fav-sidebar" aria-label="我的收藏夹">
+        <p class="fav-sidebar__title">我的收藏夹</p>
+        <div class="folder-list" id="folder-list">${folderButtonsTpl()}</div>
+      </aside>` +
+      `<div class="toolbar" role="search">
+        <div class="page-inner toolbar__inner">
+          <div class="search">
+            ${SEARCH_ICON}
+            <input class="search__input" id="fav-q" type="search" placeholder="搜索标题或 UP 主"
+                   value="${escAttr(s.q)}" autocomplete="off">
           </div>
-          <section class="section section--flush">
-            <div class="page-inner">
-              <div class="list-head"><p class="list-meta" id="fav-meta">加载中…</p></div>
-              <div class="item-list" id="fav-list">${skeletonRows(5)}</div>
-              <div class="list-footer" id="fav-footer"></div>
-            </div>
-          </section>
+          <div class="select-wrap fav-folder-select">
+            <select class="select" id="fav-folder" aria-label="全部收藏夹" title="全部收藏夹">
+              ${folderOptionsTpl()}
+            </select>
+          </div>
+          <div class="toolbar__actions">
+            <button class="btn btn--danger-outline btn--small" type="button" data-action="fav-clear-folder"${
+              folder ? '' : ' disabled'
+            }>清空此收藏夹</button>
+            <button class="btn btn--danger-text btn--small" type="button" data-action="fav-clean-invalid"${
+              folder ? '' : ' disabled'
+            }>清理失效内容</button>
+          </div>
         </div>
       </div>` +
-      pageFooterTpl();
+      `<section class="section">
+        <div class="page-inner">
+          <div class="list-head">
+            <p class="list-meta" id="fav-meta">加载中…</p>
+            <div class="list-tools" id="fav-tools" hidden>
+              <button class="btn btn--ghost btn--small" type="button" data-action="select-favs">全选本页</button>
+              <button class="btn btn--ghost btn--small" type="button" data-action="invert-favs">反选</button>
+              <button class="btn btn--ghost btn--small" type="button" data-action="clear-favs">清除选择</button>
+            </div>
+          </div>
+          <div class="item-list" id="fav-list">${skeletonRows(5)}</div>
+          <div class="list-footer" id="fav-footer"></div>
+        </div>
+      </section>`;
 
     if (!s.foldersLoaded) {
       fetchFavoriteFolders();
@@ -2651,10 +2668,11 @@
     renderActionBar();
   }
 
-  function folderListTpl() {
+  /* same folder list is rendered twice: fixed rail (>=1600px) and select (<1600px) */
+  function folderButtonsTpl() {
     const s = state.favorites;
-    if (!s.foldersLoaded) return '<p class="folder__count">加载中…</p>';
-    if (!s.folders.length) return '<p class="folder__count">没有收藏夹</p>';
+    if (!s.foldersLoaded) return '<p class="folder-empty">加载中…</p>';
+    if (!s.folders.length) return '<p class="folder-empty">没有收藏夹</p>';
     return s.folders
       .map(
         (folder) => `<button class="folder" type="button" data-action="select-folder" data-id="${folder.media_id}"
@@ -2666,6 +2684,20 @@
           </span>
           <span class="folder__count">${fmtInt(folder.count)} 个内容</span>
         </button>`
+      )
+      .join('');
+  }
+
+  function folderOptionsTpl() {
+    const s = state.favorites;
+    if (!s.foldersLoaded) return '<option value="">加载中…</option>';
+    if (!s.folders.length) return '<option value="">没有收藏夹</option>';
+    return s.folders
+      .map(
+        (folder) =>
+          `<option value="${folder.media_id}"${s.folderId === folder.media_id ? ' selected' : ''}>${esc(
+            folder.title
+          )}（${fmtInt(folder.count)}）</option>`
       )
       .join('');
   }
@@ -2800,6 +2832,7 @@
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-favs">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
     }
+    setToolsVisible('fav-tools', !!s.loaded && s.items.length > 0);
     renderActionBar();
   }
 
@@ -2934,14 +2967,14 @@
       heroTpl({
         eyebrow: '清理 · 稍后再看',
         title: '稍后再看',
-        parchment: false,
+        parchment: true,
         stats:
           statTpl(fmtInt(s.total || s.items.length), '视频数', 'toview-stat-total') +
           statTpl(fmtInt(s.items.length), '已加载', 'toview-stat-loaded'),
       }) +
       `<div class="toolbar">
         <div class="page-inner toolbar__inner">
-          <p class="list-meta" id="toview-meta">加载中…</p>
+          <span class="toolbar__spacer"></span>
           <div class="toolbar__actions">
             <button class="btn btn--danger-outline btn--small" type="button" data-action="toview-clear">清空稍后再看</button>
           </div>
@@ -2949,11 +2982,18 @@
       </div>` +
       `<section class="section">
         <div class="page-inner">
+          <div class="list-head">
+            <p class="list-meta" id="toview-meta">加载中…</p>
+            <div class="list-tools" id="toview-tools" hidden>
+              <button class="btn btn--ghost btn--small" type="button" data-action="select-toview">全选本页</button>
+              <button class="btn btn--ghost btn--small" type="button" data-action="invert-toview">反选</button>
+              <button class="btn btn--ghost btn--small" type="button" data-action="clear-toview-selection">清除选择</button>
+            </div>
+          </div>
           <div class="item-list" id="toview-list">${skeletonRows(5)}</div>
           <div class="list-footer" id="toview-footer"></div>
         </div>
-      </section>` +
-      pageFooterTpl();
+      </section>`;
 
     if (!s.loaded) fetchToview(true);
     else renderToviewList();
@@ -3030,7 +3070,23 @@
           '<button class="btn btn--secondary btn--small" type="button" data-action="load-more-toview">加载更多</button>';
       else footer.innerHTML = s.items.length ? '<span class="list-footer__done">已经到底了</span>' : '';
     }
+    setToolsVisible('toview-tools', !!s.loaded && s.items.length > 0);
     renderActionBar();
+  }
+
+  function selectAllToview() {
+    state.toview.items.forEach((item) => state.toview.selected.add(Number(item.aid)));
+    renderToviewList();
+  }
+
+  function invertToview() {
+    const selected = state.toview.selected;
+    state.toview.items.forEach((item) => {
+      const aid = Number(item.aid);
+      if (selected.has(aid)) selected.delete(aid);
+      else selected.add(aid);
+    });
+    renderToviewList();
   }
 
   function updateToviewMeta() {
@@ -3717,6 +3773,12 @@
         state.toview.selected.clear();
         renderToviewList();
         return;
+      case 'select-toview':
+        selectAllToview();
+        return;
+      case 'invert-toview':
+        invertToview();
+        return;
       case 'save-settings':
         saveSettings(el);
         return;
@@ -3841,6 +3903,8 @@
     } else if (id === 'logs-level') {
       state.logs.level = target.value;
       renderLogList();
+    } else if (id === 'fav-folder') {
+      selectFolder(Number(target.value));
     } else if (id === 'set-llm-enabled') {
       toggleLlmFields(target.checked);
       const label = target.closest('.switch');

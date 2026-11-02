@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "name": "22-empty-inbox",
+      "file": "E:/FILES FOR DSH/bili-cleaner/shots-v013/22-empty-inbox.png",
+      "metrics": {
+        "innerW": 1440,
+        "innerH": 1000,
+        "scrollW": 1440,
+        "scrollH": 1000,
+        "hash": "#/toview"
+      },
+      "errors": [],
+      "notes": [
+        {
+          "expr": "(() => ({ empty: !!document.querySelector('#toview-list .empty'), toolsHidden: document.querySelector('#toview-tools')?.hidden, footer: !!document.querySelector('#view-root .page-footer'), tovTotal: document.querySelector('#toview-stat-total')?.textContent }))()",
+          "value": {
+            "empty": true,
+            "toolsHidden": true,
+            "footer": false,
+            "tovTotal": "0"
+          }
+        }
+      ]
+    }
+  ]
+}

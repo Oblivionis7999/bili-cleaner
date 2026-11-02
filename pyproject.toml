@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bilicleaner"
-version = "0.1.2"
+version = "0.1.3"
 description = "A tiny local web app that cleans up your own Bilibili account: unfollows, dynamics, favorites and watch-later."
 readme = "README.md"
 requires-python = ">=3.10"

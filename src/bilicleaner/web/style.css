@@ -97,7 +97,7 @@
   --radius-pill: 9999px;
 
   /* layout */
-  --content-max: 1240px;
+  --content-max: 1080px;
   --gutter: 32px;
   --nav-h: 44px;
   --subnav-h: 52px;
@@ -939,8 +939,9 @@ a {
 }
 
 /* ------------------------------------------------------------------- hero */
+/* every page uses the same parchment hero so the four content columns match */
 .hero {
-  background: var(--color-canvas);
+  background: var(--color-canvas-parchment);
   padding: calc(var(--space-section) - 16px) 0 var(--space-xxl);
 }
 
@@ -1002,18 +1003,29 @@ a {
 }
 
 /* ---------------------------------------------------------------- toolbar */
+/* one shared toolbar skeleton: same height / paddings / hairlines on 4 pages */
 .toolbar {
+  display: flex;
+  align-items: center;
+  min-height: 80px;
+  padding: 20px 0;
   background: var(--color-canvas-parchment);
   border-top: 1px solid var(--color-hairline);
   border-bottom: 1px solid var(--color-hairline);
-  padding: var(--space-md) 0;
 }
 
 .toolbar__inner {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-height: 40px;
   flex-wrap: wrap;
+}
+
+.toolbar .search__input,
+.toolbar .select,
+.toolbar .date-input {
+  height: 40px;
 }
 
 .toolbar__spacer {
@@ -1620,22 +1632,26 @@ body.has-action-bar .view {
 }
 
 /* --------------------------------------------------------------- favorites */
-.fav-layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  align-items: stretch;
-  background: var(--color-canvas);
-}
-
+/* Independent fixed rail on very wide screens. It does not participate in the
+   content layout, so the four pages keep the exact same centered column. */
 .fav-sidebar {
-  padding: var(--space-lg) 0 var(--space-xl);
-  border-right: 1px solid var(--color-hairline);
+  position: fixed;
+  top: calc(var(--nav-h) + var(--subnav-h));
+  left: 0;
+  bottom: 0;
+  z-index: 40;
+  display: none;
+  width: 220px;
+  padding: var(--space-lg) 12px var(--space-xl);
+  overflow-y: auto;
   background: var(--color-canvas-parchment);
+  border-right: 1px solid var(--color-hairline);
+  scrollbar-width: thin;
 }
 
 .fav-sidebar__title {
   margin: 0 0 var(--space-xs);
-  padding: 0 var(--space-lg);
+  padding: 0 12px;
   font-size: var(--text-fine);
   font-weight: 600;
   letter-spacing: var(--ls-fine);
@@ -1646,7 +1662,6 @@ body.has-action-bar .view {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 12px;
 }
 
 .folder {
@@ -1655,7 +1670,7 @@ body.has-action-bar .view {
   align-items: flex-start;
   gap: 2px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 12px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   text-align: left;
@@ -1696,16 +1711,27 @@ body.has-action-bar .view {
   font-variant-numeric: tabular-nums;
 }
 
-.fav-main {
-  min-width: 0;
+.folder-empty {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: var(--text-fine);
+  letter-spacing: var(--ls-fine);
+  color: var(--color-ink-muted-48);
 }
 
-.fav-main .toolbar {
-  border-top: 0;
+.fav-folder-select {
+  display: inline-flex;
 }
 
-.fav-empty {
-  padding: var(--space-xxl) 0;
+/* >=1600px: dedicated fixed rail, folder picker hidden in the toolbar */
+@media (min-width: 1600px) {
+  .fav-sidebar {
+    display: block;
+  }
+
+  .fav-folder-select {
+    display: none;
+  }
 }
 
 /* ---------------------------------------------------------------- settings */
@@ -2147,10 +2173,6 @@ body.has-action-bar .toasts {
 
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1068px) {
-  .fav-layout {
-    grid-template-columns: 240px minmax(0, 1fr);
-  }
-
   .hero__stats {
     gap: var(--space-lg);
   }
@@ -2163,37 +2185,6 @@ body.has-action-bar .toasts {
 
   .global-nav__name {
     display: none;
-  }
-
-  .fav-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .fav-sidebar {
-    padding: var(--space-md) 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-hairline);
-  }
-
-  .fav-sidebar__title {
-    padding: 0 var(--gutter);
-  }
-
-  .folder-list {
-    flex-direction: row;
-    gap: var(--space-xs);
-    padding: 0 var(--gutter);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .folder-list::-webkit-scrollbar {
-    display: none;
-  }
-
-  .folder {
-    width: auto;
-    flex: 0 0 auto;
   }
 
   .item {
